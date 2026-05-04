@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import type { AgentFunction, AgentStage } from '@/lib/types';
@@ -20,14 +20,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-export default function PortfolioPage() {
+function PortfolioInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { agents, loading, upsertAgent, removeAgent } = useAgents();
   const [stageFilter, setStageFilter] = useState<AgentStage | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  // Pre-apply ?fn= filter passed by function-view deep links
   const fnParam = searchParams.get('fn') as AgentFunction | null;
   const [initialFnApplied, setInitialFnApplied] = useState(false);
 
@@ -53,12 +52,9 @@ export default function PortfolioPage() {
     [agents, upsertAgent]
   );
 
-  const handleDelete = useCallback(
-    async (agentId: string) => {
-      setDeleteConfirm(agentId);
-    },
-    []
-  );
+  const handleDelete = useCallback(async (agentId: string) => {
+    setDeleteConfirm(agentId);
+  }, []);
 
   const confirmDelete = useCallback(async () => {
     if (!deleteConfirm) return;
@@ -88,14 +84,12 @@ export default function PortfolioPage() {
         }
       />
 
-      {/* Stage pipeline — clickable stage filters */}
       <StagePipeline
         agents={agents}
         activeStage={stageFilter}
         onStageClick={setStageFilter}
       />
 
-      {/* Agent table */}
       <AgentTable
         agents={agents}
         stageFilter={stageFilter}
@@ -104,7 +98,6 @@ export default function PortfolioPage() {
         initialFunctionFilter={fnParam ?? undefined}
       />
 
-      {/* Delete confirmation dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={(o) => !o && setDeleteConfirm(null)}>
         <DialogContent>
           <DialogHeader>
@@ -121,5 +114,17 @@ export default function PortfolioPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function PortfolioPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-muted-foreground">Loading portfolio…</p>
+      </div>
+    }>
+      <PortfolioInner />
+    </Suspense>
   );
 }
